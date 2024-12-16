@@ -1,0 +1,9 @@
+../Core/Src/main.c:161:13:task_Asservissement_Moteur_Left	48	static
+../Core/Src/main.c:191:13:task_Asservissement_Moteur_Right	48	static
+../Core/Src/main.c:217:13:task_led	16	static
+../Core/Src/main.c:238:13:task_decision	40	static
+../Core/Src/main.c:441:5:main	40	static
+../Core/Src/main.c:561:6:subscription_callback	24	static
+../Core/Src/main.c:586:6:microros_task	376	static
+../Core/Src/main.c:668:6:HAL_TIM_PeriodElapsedCallback	16	static
+../Core/Src/main.c:676:6:Error_Handler	4	static,ignoring_inline_asm

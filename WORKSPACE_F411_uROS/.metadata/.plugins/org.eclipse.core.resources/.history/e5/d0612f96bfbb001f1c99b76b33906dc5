@@ -1,0 +1,337 @@
+#include "main.h"
+
+
+//#######################################################
+#define EX1 1
+#define EX2 2
+#define EX3 3
+#define kp  0.01
+#define tau 40
+#define Te	5
+#define Ti	(0.1 * tau)
+#define ki  (Te / Ti)
+
+#define SYNCHRO_EX EX2
+
+//#######################################################
+
+// Déclaration des objets synchronisants !! Ne pas oublier de les créer
+xSemaphoreHandle xSemaphore = NULL;
+xQueueHandle qh = NULL;
+
+
+extern uint8_t rec_buf2[NB_CAR_TO_RECEIVE+1];	 // defined in drv_uart.c
+extern uint8_t rec_buf6[NB_CAR_TO_RECEIVE+1];
+
+struct AMessage
+{
+	char command;
+	int data;
+};
+
+//========================================================
+#if SYNCHRO_EX == EX1
+
+int tab_speedL[100];
+int tab_errL[100];
+
+
+int tab_speedR[100];
+int tab_errR[100];
+
+static void task_A(void *pvParameters)
+{
+static int i = 0;
+int cons = 1000;
+
+int speedL=0;
+float errL = 0.0;
+float upL, uiL = 0.0;
+float cdeL = 0.0;
+
+
+
+//UNUSED(pvParameters);
+	for (;;)
+	{
+
+		speedL = quadEncoder_GetSpeedL();
+		//*
+
+		errL = cons - speedL;
+
+		upL = kp * errL;
+
+		uiL = uiL + (kp * ki * errL);
+
+		cdeL = upL + uiL; //cde = commande
+
+		motorLeft_SetDuty(100 + (int16_t)cdeL);
+
+		//*/
+
+		if (i < 100)
+		{
+			tab_speedL[i]= speedL;
+			tab_errL[i]= errL;
+			i++;
+		}
+		term_printf("\nTASK A \n\r");
+		vTaskDelay(5); // 1000 ms
+	}
+}
+
+static void task_B(void *pvParameters)
+{
+	static int i = 0;
+	int cons = 1000;
+
+	int speedR=0;
+	float errR = 0.0;
+	float upR, uiR = 0.0;
+	float cdeR = 0.0;
+
+
+
+	//UNUSED(pvParameters);
+	for (;;)
+	{
+
+		speedL = quadEncoder_GetSpeedL();
+		//*
+
+		errR = cons - speedR;
+
+		upR = kp * errR;
+
+		uiR = uiR + (kp * ki * errR);
+
+		cdeR = upR + uiR; //cde = commande
+
+		motorRight_SetDuty(100 + (int16_t)cdeR);
+
+			//*/
+
+		if (i < 100)
+		{
+			tab_speedR[i]= speedR;
+			tab_errR[i]= errR;
+			i++;
+		}
+		term_printf("\nTASK A \n\r");
+		vTaskDelay(5); // 1000 ms
+	}
+}
+//========================================================
+#elif SYNCHRO_EX == EX2
+
+static void task_C( void *pvParameters )
+{
+	int tab[2] = {0};
+		static int i = 0;
+		static int y = 0;
+		uint16_t dist;
+		char side = ' ';
+		//UNUSED(pvParameters);
+		for (;;)
+		{
+
+			if (i == 0)
+			{
+				if(y == 0)
+					captDistUS_Measure(CAPT_US_LEFT_ADDRESS);
+				else
+					captDistUS_Measure(CAPT_US_RIGHT_ADDRESS);
+				i++;
+			}
+			else if (i == 14) //70ms delay
+			{
+				dist = (y == 0) ? captDistUS_Get(CAPT_US_LEFT_ADDRESS) : captDistUS_Get(CAPT_US_RIGHT_ADDRESS);
+				side = (y == 0) ? 'L' : 'R';
+
+				term_printf("\n US%c : %d\n\r", side, dist);
+
+				y ^= 1;
+				i = 0;
+			}
+			else
+				i++;
+
+			captDistIR_Get(tab);
+			term_printf("\n\r\nIR1 = %d \t IR2 = %d \n\r", tab[0], tab[1]);
+
+
+			vTaskDelay(5); // 1000 ms
+		}
+	for (;;)
+	{
+		term_printf("TASK C \n\r");
+		xSemaphoreTake( xSemaphore, portMAX_DELAY );
+	}
+}
+
+static void task_D( void *pvParameters )
+{
+	for (;;)
+	{
+		term_printf("TASK D \n\r");
+		xSemaphoreGive( xSemaphore );
+	}
+}
+
+//========================================================
+#elif SYNCHRO_EX == EX3
+
+static void task_E( void *pvParameters )
+{
+	struct AMessage pxMessage;
+	pxMessage.command='a';
+	pxMessage.data=10;
+	vTaskDelay(1000);
+	for (;;)
+	{
+	    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, 1);
+		term_printf("TASK E \n\r");
+		xQueueSend( qh, ( void * ) &pxMessage,  portMAX_DELAY );
+		xSemaphoreTake( xSemaphore, portMAX_DELAY );
+		HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, 0);
+		vTaskDelay(SAMPLING_PERIOD_ms);
+
+	}
+}
+
+static void task_F(void *pvParameters)
+{
+	struct AMessage pxRxedMessage;
+
+	for (;;)
+	{
+		xQueueReceive( qh,  &( pxRxedMessage ) , portMAX_DELAY );
+		term_printf("TASK F \n\r");
+		xSemaphoreGive( xSemaphore );
+	}
+}
+#endif
+//=========================================================
+//	>>>>>>>>>>>>	MAIN	<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//=========================================================
+
+int main(void)
+{
+	HAL_Init();
+	SystemClock_Config();
+
+	uart2_Init();			// CABLE
+	uart6_Init();			// ZIGBEE
+	i2c1_Init();
+	spi1Init();
+	pixyCam2_Init();			// Caméra Pixy
+	captDistIR_Init();		// Capteurs Infrarouge
+	quadEncoder_Init();		// Encodeurs Incrémentaux
+	motorCommand_Init();	// Commande des Hacheurs
+	servoCommand_Init();	// Commande des Servomoteurs
+
+
+	// Test Ecran LCD
+	int a, b;
+	groveLCD_begin(16,2,0); // !! cette fonction prend du temps
+	HAL_Delay(100);
+	groveLCD_setColor(1);
+	a=5; b=2;
+	groveLCD_term_printf("%d+%d=%d",a,b,a+b);
+
+
+	HAL_Delay(1000);
+
+	//pixyCam2_Test();  // !! boucle infinie
+
+
+	motorLeft_SetDuty(50);
+	motorRight_SetDuty(150);
+	/*
+	captDistIR_Get(tab);
+	while(1)
+	{
+		for(int i = 0; i < 10000000; i++ );
+		sprintf(msg, "\nIR1 = %d \t IR2 = %d \n\r", tab[0], tab[1]);
+		put_string(msg);
+
+	}
+	//*/
+
+
+
+
+
+
+
+#if SYNCHRO_EX == EX1
+	xTaskCreate( task_A, ( const portCHAR * ) "task A", 512 /* stack size */, NULL, tskIDLE_PRIORITY+2, NULL );
+	xTaskCreate( task_B, ( const portCHAR * ) "task B", 512 /* stack size */, NULL, tskIDLE_PRIORITY+1, NULL );
+#elif SYNCHRO_EX == EX2
+	xTaskCreate( task_C, ( signed portCHAR * ) "task C", 512 /* stack size */, NULL, tskIDLE_PRIORITY+2, NULL );
+	xTaskCreate( task_D, ( signed portCHAR * ) "task D", 512 /* stack size */, NULL, tskIDLE_PRIORITY+1, NULL );
+#elif SYNCHRO_EX == EX3
+	xTaskCreate( task_E, ( signed portCHAR * ) "task E", 512 /* stack size */, NULL, tskIDLE_PRIORITY+2, NULL );
+	xTaskCreate( task_F, ( signed portCHAR * ) "task F", 512 /* stack size */, NULL, tskIDLE_PRIORITY+1, NULL );
+#endif
+
+	vSemaphoreCreateBinary(xSemaphore);
+	xSemaphoreTake( xSemaphore, portMAX_DELAY );
+
+	qh = xQueueCreate( 1, sizeof(struct AMessage ) );
+
+	vTaskStartScheduler();
+
+	return 0;
+
+}
+
+
+//=================================================================
+//	UART RECEIVE CALLBACK5
+//=================================================================
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
+{
+	if(UartHandle -> Instance == USART2)
+	{
+
+		 HAL_UART_Receive_IT(&Uart2Handle, (uint8_t *)rec_buf2, NB_CAR_TO_RECEIVE);
+
+	}
+
+	if(UartHandle -> Instance == USART6)
+	{
+
+		 HAL_UART_Receive_IT(&Uart6Handle, (uint8_t *)rec_buf6, NB_CAR_TO_RECEIVE);
+	}
+
+}
+
+
+
+//=================================================================
+// Called if stack overflow during execution
+extern void vApplicationStackOverflowHook(xTaskHandle *pxTask,
+		signed char *pcTaskName)
+{
+	//term_printf("stack overflow %x %s\r\n", pxTask, (portCHAR *)pcTaskName);
+	/* If the parameters have been corrupted then inspect pxCurrentTCB to
+	 * identify which task has overflowed its stack.
+	 */
+	for (;;) {
+	}
+}
+//=================================================================
+//This function is called by FreeRTOS idle task
+extern void vApplicationIdleHook(void)
+{
+}
+//=================================================================
+// brief This function is called by FreeRTOS each tick
+extern void vApplicationTickHook(void)
+{
+//	HAL_IncTick();
+}
+
+

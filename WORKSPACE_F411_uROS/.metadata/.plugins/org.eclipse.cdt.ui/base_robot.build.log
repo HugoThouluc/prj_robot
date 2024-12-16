@@ -1,0 +1,72 @@
+18:20:11 **** Incremental Build of configuration Debug for project base_robot ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F411xE -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I"/home/e2021/h1thoulu/Bureau/WORKSPACE_F411_uROS/base_robot/micro_ros_stm32cubemx_utils/microros_static_library/libmicroros/microros_include" -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I../Middlewares/Third_Party/FreeRTOS/Source/include -I../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 -I../Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'task_decision':
+../Core/Src/main.c:254:22: warning: unused variable 'dist_AVG' [-Wunused-variable]
+  254 | static int dist_AVD, dist_AVG;
+      |                      ^~~~~~~~
+../Core/Src/main.c:254:12: warning: unused variable 'dist_AVD' [-Wunused-variable]
+  254 | static int dist_AVD, dist_AVG;
+      |            ^~~~~~~~
+../Core/Src/main.c:253:10: warning: unused variable 'dist_ARR' [-Wunused-variable]
+  253 | uint16_t dist_ARR = 0;
+      |          ^~~~~~~~
+../Core/Src/main.c:252:5: warning: unused variable 'tab_dist' [-Wunused-variable]
+  252 | int tab_dist[2];
+      |     ^~~~~~~~
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:457:19: warning: unused variable 'dist2' [-Wunused-variable]
+  457 |   uint16_t dist1, dist2;
+      |                   ^~~~~
+../Core/Src/main.c:457:12: warning: unused variable 'dist1' [-Wunused-variable]
+  457 |   uint16_t dist1, dist2;
+      |            ^~~~~
+../Core/Src/main.c:444:7: warning: unused variable 'tab_dist' [-Wunused-variable]
+  444 |   int tab_dist[2];
+      |       ^~~~~~~~
+../Core/Src/main.c: In function 'subscription_callback':
+../Core/Src/main.c:582:32: warning: format '%s' expects argument of type 'char *', but argument 2 has type 'rosidl_runtime_c__String' [-Wformat=]
+  582 |   printf("Received from HOST: %s\n\r", msg->data);
+      |                               ~^       ~~~~~~~~~
+      |                                |          |
+      |                                char *     rosidl_runtime_c__String
+../Core/Src/main.c: In function 'microros_task':
+../Core/Src/main.c:646:58: warning: format '%d' expects argument of type 'int', but argument 3 has type 'long int' [-Wformat=]
+  646 |    sprintf(str_msg.data.data, "from STM32 : mes_vl53 : #%d", (int32_t)mes_vl53);
+      |                                                         ~^   ~~~~~~~~~~~~~~~~~
+      |                                                          |   |
+      |                                                          int long int
+      |                                                         %ld
+../Core/Src/main.c:617:25: warning: unused variable 'sensor_dist_back_msg' [-Wunused-variable]
+  617 |   std_msgs__msg__String sensor_dist_back_msg;
+      |                         ^~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:607:22: warning: unused variable 'node_ops' [-Wunused-variable]
+  607 |   rcl_node_options_t node_ops = rcl_node_get_default_options();
+      |                      ^~~~~~~~
+../Core/Src/main.c:609:3: warning: ignoring return value of 'rcl_init_options_init' declared with attribute 'warn_unused_result' [-Wunused-result]
+  609 |   rcl_init_options_init(&init_options, allocator);
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:610:3: warning: ignoring return value of 'rcl_init_options_set_domain_id' declared with attribute 'warn_unused_result' [-Wunused-result]
+  610 |   rcl_init_options_set_domain_id(&init_options, ROS_DOMAIN_ID);
+      |   ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+At top level:
+../Core/Src/main.c:254:12: warning: 'dist_AVD' defined but not used [-Wunused-variable]
+  254 | static int dist_AVD, dist_AVG;
+      |            ^~~~~~~~
+../Core/Src/main.c:254:22: warning: 'dist_AVG' defined but not used [-Wunused-variable]
+  254 | static int dist_AVD, dist_AVG;
+      |                      ^~~~~~~~
+arm-none-eabi-gcc -o "base_robot.elf" @"objects.list"  -lmicroros -mcpu=cortex-m4 -T"/home/e2021/h1thoulu/Bureau/WORKSPACE_F411_uROS/base_robot/STM32F411RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="base_robot.map" -Wl,--gc-sections -static -L"/home/e2021/h1thoulu/Bureau/WORKSPACE_F411_uROS/base_robot/micro_ros_stm32cubemx_utils/microros_static_library/libmicroros" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -u _scanf_float -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: base_robot.elf
+ 
+arm-none-eabi-size   base_robot.elf 
+arm-none-eabi-objdump -h -S  base_robot.elf  > "base_robot.list"
+   text	   data	    bss	    dec	    hex	filename
+ 126500	    612	  61304	 188416	  2e000	base_robot.elf
+Finished building: default.size.stdout
+ 
+Finished building: base_robot.list
+ 
+
+18:20:16 Build Finished. 0 errors, 15 warnings. (took 4s.815ms)
+
